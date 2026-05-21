@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title.nanobot 学习指南 | 极简 AI Agent 架构解析</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #f59e0b;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --code-bg: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 4rem 0;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin: 2rem 0;
+            z-index: 100;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: var(--text);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        nav a:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        section {
+            margin: 4rem 0;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 1rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem;
+            color: var(--accent);
+        }
+
+        .architecture-diagram {
+            background: var(--code-bg);
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            white-space: pre;
+            color: #a5f3fc;
+        }
+
+        .flow-diagram {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .component-card {
+            background: var(--code-bg);
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .component-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .component-card h4 {
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            font-size: 1.125rem;
+        }
+
+        .component-card p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .code-block code {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            color: #fbbf24;
+        }
+
+        .code-block .comment { color: #6b7280; }
+        .code-block .keyword { color: #f472b6; }
+        .code-block .string { color: #a5f3fc; }
+        .code-block .function { color: #34d399; }
+        .code-block .class { color: #60a5fa; }
+        .code-block .number { color: #f97316; }
+
+        .step-list {
+            counter-reset: step;
+            list-style: none;
+        }
+
+        .step-list li {
+            counter-increment: step;
+            padding: 1rem 0 1rem 3rem;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 1rem;
+            width: 2rem;
+            height: 2rem;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .callout {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-left: 4px solid var(--primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin: 1rem 0;
+        }
+
+        .callout.warning {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+            border-left-color: var(--accent);
+        }
+
+        .emoji-icon {
+            font-size: 2rem;
+            margin-right: 0.75rem;
+        }
+
+        .file-tree {
+            background: var(--code-bg);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .file-tree .folder { color: var(--accent); }
+        .file-tree .file { color: var(--success); }
+        .file-tree .indent { padding-left: 1.5rem; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        th {
+            background: var(--code-bg);
+            color: var(--primary);
+        }
+
+        .highlight { background: rgba(99, 102, 241, 0.3); padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+
+        .interactive-demo {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .demo-btn:hover { transform: scale(1.05); }
+        .demo-btn:active { transform: scale(0.95); }
+
+        .progress-bar {
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            h1 { font-size: 2rem; }
+            nav { position: static; }
+            .architecture-diagram { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐈 nanobot 学习指南</h1>
+            <p class="subtitle">极简 AI Agent 架构解析 — 从源码理解 OpenClaw 的核心原理</p>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">~15,000 行 Python 代码 | 99% 更少代码量 | 95%+ 功能覆盖</p>
+        </header>
+
+        <nav>
+            <a href="#overview">项目概览</a>
+            <a href="#architecture">整体架构</a>
+            <a href="#agentloop">AgentLoop 核心</a>
+            <a href="#channels">通道系统</a>
+            <a href="#providers">Provider 系统</a>
+            <a href="#tools">工具系统</a>
+            <a href="#memory">记忆系统</a>
+            <a href="#session">会话管理</a>
+            <a href="#summary">总结</a>
+        </nav>
+
+        <!-- 第一章：项目概览 -->
+        <section id="overview">
+            <h2><span class="emoji-icon">📦</span>项目概览</h2>
+
+            <h3>什么是 nanobot？</h3>
+            <p>nanobot 是一个受 <a href="https://github.com/openclaw/openclaw" style="color: var(--primary);">OpenClaw</a> 启发的人工智能助手实现。它用约 <span class="highlight">15,000 行代码</span>实现了 OpenClaw 95% 以上的功能，而 OpenClaw 本身是一个更复杂的项目。</p>
+
+            <div class="callout">
+                <strong>💡 关键洞察：</strong>nanobot 的设计哲学是"小而美"——用最少的代码做最有用的事。每个模块都经过精心设计，只保留核心功能。
+            </div>
+
+            <h3>项目结构</h3>
+            <div class="file-tree">
+<span class="folder">nanobot/</span>
+├── <span class="folder">agent/</span>          <span class="comment"># 🤖 AI Agent 核心</span>
+│   ├── loop.py          <span class="comment"># AgentLoop - 主循环</span>
+│   ├── context.py       <span class="comment"># ContextBuilder - 上下文构建</span>
+│   ├── memory.py        <span class="comment"># MemoryStore/MemoryConsolidator</span>
+│   ├── subagent.py      <span class="comment"># SubagentManager - 子代理</span>
+│   ├── skills.py        <span class="comment"># SkillsLoader - 技能加载</span>
+│   └── <span class="folder">tools/</span>        <span class="comment"># 🔧 工具注册与执行</span>
+│       ├── registry.py  <span class="comment"># ToolRegistry</span>
+│       ├── filesystem.py
+│       ├── shell.py
+│       ├── web.py
+│       └── ...
+├── <span class="folder">channels/</span>      <span class="comment"># 💬 多平台消息通道</span>
+│   ├── base.py          <span class="comment"># BaseChannel - 通道基类</span>
+│   ├── manager.py      <span class="comment"># ChannelManager - 通道管理</span>
+│   ├── telegram.py
+│   ├── discord.py
+│   ├── feishu.py
+│   └── ...
+├── <span class="folder">providers/</span>     <span class="comment"># 🧠 LLM 提供商</span>
+│   ├── base.py          <span class="comment"># LLMProvider - 提供商基类</span>
+│   ├── openai.py
+│   ├── anthropic.py
+│   └── ...
+├── <span class="folder">session/</span>       <span class="comment"># 💾 会话管理</span>
+├── <span class="folder">bus/</span>            <span class="comment"># 🚌 消息总线</span>
+├── <span class="folder">cron/</span>           <span class="comment"># ⏰ 定时任务</span>
+├── <span class="folder">config/</span>         <span class="comment"># ⚙️ 配置管理</span>
+└── <span class="folder">skills/</span>         <span class="comment"># 🎯 可插拔技能</span>
+            </div>
+
+            <h3>核心技术栈</h3>
+            <div class="component-grid">
+                <div class="component-card">
+                    <h4>🔄 AsyncIO</h4>
+                    <p>使用 Python 异步编程实现高并发，所有 I/O 操作均为非阻塞</p>
+                </div>
+                <div class="component-card">
+                    <h4>🧠 Tool Call</h4>
+                    <p>支持 LLM 工具调用（Function Calling），让 AI 能执行代码和操作</p>
+                </div>
+                <div class="component-card">
+                    <h4>💬 多通道</h4>
+                    <p>统一接口连接 Telegram、Discord、Feishu 等多个平台</p>
+                </div>
+                <div class="component-card">
+                    <h4>🧵 多 Provider</h4>
+                    <p>支持 OpenAI、Anthropic、Azure 等多种 LLM 提供商</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第二章：整体架构 -->
+        <section id="architecture">
+            <h2><span class="emoji-icon">🏗️</span>整体架构</h2>
+
+            <p>nanobot 的架构遵循经典的 <strong>事件驱动 + 模块化</strong> 设计。以下是系统的核心架构图：</p>
+
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                    nanobot 架构                                      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+                           ┌─────────────────────────────────────┐
+                           │          External Platforms          │
+                           │  (Telegram, Discord, Feishu, ...)   │
+                           └──────────────────┬──────────────────┘
+                                              │  Inbound/Outbound
+                           ┌──────────────────▼──────────────────┐
+                           │          ChannelManager              │
+                           │     (多通道统一管理)                 │
+                           └──────────────────┬──────────────────┘
+                                              │
+                           ┌──────────────────▼──────────────────┐
+                           │             MessageBus               │
+                           │   (🚌 事件总线 / 发布-订阅)           │
+                           └──────────────────┬──────────────────┘
+                                              │
+        ┌─────────────────────────────────────┼─────────────────────────────────────┐
+        │                                     │                                      │
+        ▼                                     ▼                                      ▼
+┌───────────────────┐              ┌───────────────────┐               ┌───────────────────┐
+│   AgentLoop       │              │   CronService    │               │   Heartbeat       │
+│   (🤖 核心)        │              │   (⏰ 定时任务)   │               │   (💓 心跳)        │
+└─────────┬─────────┘              └─────────┬─────────┘               └───────────────────┘
+          │                                  │
+          ▼                                  │
+   ┌───────────────────┐                     │
+   │   ToolRegistry    │◄────────────────────┘
+   │   (🔧 工具注册)    │    工具执行
+   └─────────┬─────────┘
+             │
+    ┌────────┴────────┬─────────────┐
+    ▼                 ▼            ▼
+┌────────┐      ┌─────────┐   ┌─────────┐
+│ Files  │      │  Shell  │   │   Web   │
+└────────┘      └─────────┘   └─────────┘
+
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                         LLM Providers                            │
+   │              (OpenAI, Anthropic, Azure, ...)                    │
+   └─────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <h3>消息流详解</h3>
+
+            <div class="flow-diagram">
+                <div style="text-align: center; font-family: monospace; color: #a5f3fc;">
+                    用户消息
+                        │
+                        ▼
+            ┌───────────────────┐
+            │   ChannelAdapter │  ← 适配不同平台（Telegram/Discord/Feishu...）
+            └─────────┬─────────┘
+                      │ Normalize（统一格式）
+                      ▼
+            ┌───────────────────┐
+            │    MessageBus    │  ← 发布消息
+            └─────────┬─────────┘
+                      │
+                      ▼
+            ┌───────────────────┐
+            │    AgentLoop     │  ← 核心处理
+            │  _process_message│
+            └─────────┬─────────┘
+                      │
+         ┌────────────┼────────────┐
+         │            │            │
+         ▼            ▼            ▼
+    ┌─────────┐ ┌─────────┐ ┌─────────┐
+    │ Provider│ │ Memory  │ │ Tools   │
+    │  (LLM)  │ │ (历史)  │ │ (执行)  │
+    └────┬────┘ └────┬────┘ └────┬────┘
+         │            │            │
+         └────────────┼────────────┘
+                      │ Tool Result
+                      ▼
+            ┌───────────────────┐
+            │  Response → Bus   │
+            └─────────┬─────────┘
+                      │
+                      ▼
+            ┌───────────────────┐
+            │ ChannelAdapter    │  ← 回复用户
+            └───────────────────┘
+                </div>
+            </div>
+
+            <div class="callout">
+                <strong>🎯 架构设计要点：</strong>
+                <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li><strong>解耦：</strong>Channel 与 Agent 通过 MessageBus 通信，互不依赖</li>
+                    <li><strong>可扩展：</strong>新增通道只需实现 BaseChannel 接口</li>
+                    <li><strong>可测试：</strong>每个模块都可以独立单元测试</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 第三章：AgentLoop 核心 -->
+        <section id="agentloop">
+            <h2><span class="emoji-icon">🤖</span>AgentLoop 核心</h2>
+
+            <p>AgentLoop 是 nanobot 的"大脑"——负责处理消息、调用 LLM、执行工具、管理会话。以下是它的核心结构：</p>
+
+            <div class="code-block">
+                <code><span class="class">class</span> <span class="function">AgentLoop</span>:
+    <span class="comment"># ──────────────────────────────────────────────</span>
+    <span class="comment"># 核心组件（初始化时注入）</span>
+    <span class="comment"># ──────────────────────────────────────────────</span>
+    bus: MessageBus                    <span class="comment"># 消息总线</span>
+    provider: LLMProvider              <span class="comment"># LLM 提供商</span>
+    workspace: Path                     <span class="comment"># 工作目录</span>
+    context: ContextBuilder             <span class="comment"># 上下文构建器</span>
+    sessions: SessionManager           <span class="comment"># 会话管理器</span>
+    tools: ToolRegistry                <span class="comment"># 工具注册表</span>
+    memory_consolidator: MemoryConsolidator  <span class="comment"># 记忆整合器</span>
+</code>
+            </div>
+
+            <h3>消息处理流程</h3>
+
+            <div class="interactive-demo">
+                <p style="color: var(--accent); margin-bottom: 1rem;">👇 点击逐步演示消息处理流程：</p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="demo-btn" onclick="showStep(1)">Step 1: 接收消息</button>
+                    <button class="demo-btn" onclick="showStep(2)">Step 2: 构建上下文</button>
+                    <button class="demo-btn" onclick="showStep(3)">Step 3: LLM 推理</button>
+                    <button class="demo-btn" onclick="showStep(4)">Step 4: 工具执行</button>
+                    <button class="demo-btn" onclick="showStep(5)">Step 5: 返回结果</button>
+                </div>
+                <div id="step-display" style="margin-top: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem; min-height: 120px;">
+                    <span style="color: var(--text-muted);">点击按钮查看每一步的详细说明...</span>
+                </div>
+                <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill"></div></div>
+            </div>
+
+            <h3>核心代码解析</h3>
+
+            <h4>1. 入口：_process_message</h4>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/loop.py:355-458</span>
+<span class="keyword">async def</span> <span class="function">_process_message</span>(msg, session_key=None, on_progress=None):
+    <span class="comment">"""
+    处理单条入站消息并返回响应
+    这是 AgentLoop 的主入口点
+    """</span>
+
+    <span class="comment"># 1. 解析会话</span>
+    key = session_key or msg.session_key
+    session = self.sessions.get_or_create(key)
+
+    <span class="comment"># 2. 处理特殊命令</span>
+    <span class="keyword">if</span> msg.content.strip().lower() == <span class="string">"/new"</span>:
+        session.clear()
+        <span class="keyword">return</span> OutboundMessage(content=<span class="string">"新会话已创建"</span>)
+
+    <span class="comment"># 3. 记忆整合（防止上下文溢出）</span>
+    await self.memory_consolidator.maybe_consolidate_by_tokens(session)
+
+    <span class="comment"># 4. 构建消息</span>
+    history = session.get_history(max_messages=<span class="number">0</span>)
+    messages = self.context.build_messages(
+        history=history,
+        current_message=msg.content,
+        media=msg.media,
+        channel=msg.channel, chat_id=msg.chat_id,
+    )
+
+    <span class="comment"># 5. 运行 Agent 循环</span>
+    final_content, _, all_msgs = await self._run_agent_loop(
+        messages, on_progress=on_progress or _bus_progress
+    )
+
+    <span class="comment"># 6. 保存会话</span>
+    self._save_turn(session, all_msgs, <span class="number">1</span> + len(history))
+    self.sessions.save(session)
+
+    <span class="keyword">return</span> OutboundMessage(channel=msg.channel, chat_id=msg.chat_id, content=final_content)
+</code>
+            </div>
+
+            <h4>2. 核心循环：_run_agent_loop</h4>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/loop.py:182-253</span>
+<span class="keyword">async def</span> <span class="function">_run_agent_loop</span>(initial_messages, on_progress=None):
+    <span class="comment">"""
+    核心 Agent 循环
+    不断调用 LLM 直到：1) 获得最终回复  2) 达到最大迭代次数
+    """</span>
+    messages = initial_messages
+    iteration = <span class="number">0</span>
+
+    <span class="keyword">while</span> iteration < self.max_iterations:
+        iteration += <span class="number">1</span>
+
+        <span class="comment"># 获取工具定义</span>
+        tool_defs = self.tools.get_definitions()
+
+        <span class="comment"># 调用 LLM</span>
+        response = await self.provider.chat_with_retry(
+            messages=messages,
+            tools=tool_defs,
+            model=self.model,
+        )
+
+        <span class="comment"># 如果 LLM 调用了工具</span>
+        <span class="keyword">if</span> response.has_tool_calls:
+            <span class="comment"># 显示思考过程</span>
+            <span class="keyword">if</span> on_progress:
+                thought = self._strip_think(response.content)
+                <span class="keyword">await</span> on_progress(thought)
+
+            <span class="comment"># 添加助手消息（含工具调用）</span>
+            messages = self.context.add_assistant_message(
+                messages, response.content, tool_call_dicts
+            )
+
+            <span class="comment"># 执行每个工具</span>
+            <span class="keyword">for</span> tool_call <span class="keyword">in</span> response.tool_calls:
+                logger.info(<span class="string">"Tool call: {}({})"</span>, tool_call.name, args_str)
+                result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                messages = self.context.add_tool_result(messages, tool_call.id, tool_call.name, result)
+        <span class="keyword">else</span>:
+            <span class="comment"># LLM 返回最终回复，循环结束</span>
+            final_content = self._strip_think(response.content)
+            <span class="keyword">break</span>
+
+    <span class="keyword">return</span> final_content, tools_used, messages
+</code>
+            </div>
+
+            <div class="callout warning">
+                <strong>⚠️ 为什么需要循环？</strong>
+                因为 AI 无法一步完成复杂任务。通过 Tool Call，AI 可以：
+                <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li>搜索网络获取信息</li>
+                    <li>读写文件</li>
+                    <li>执行代码</li>
+                    <li>然后基于结果继续推理</li>
+                </ul>
+            </div>
+
+            <h4>3. 工具执行：ToolRegistry.execute</h4>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/tools/registry.py:37-58</span>
+<span class="keyword">async def</span> <span class="function">execute</span>(self, tool_name: str, arguments: dict) -> str:
+    <span class="comment">"""
+    执行工具的核心方法
+    1. 获取工具实例
+    2. 调用工具的 execute 方法
+    3. 返回结果（JSON 字符串）
+    """</span>
+
+    tool = self._tools.get(tool_name)
+    <span class="keyword">if</span> <span class="keyword">not</span> tool:
+        <span class="keyword">return</span> json.dumps({
+            <span class="string">"error"</span>: <span class="string">f"Tool '{tool_name}' not found"</span>,
+            <span class="string">"available_tools"</span>: list(self._tools.keys())
+        })
+
+    result = <span class="keyword">await</span> tool.execute(**arguments)
+    <span class="keyword">return</span> json.dumps(result, ensure_ascii=False, indent=<span class="number">2</span>)
+</code>
+            </div>
+        </section>
+
+        <!-- 第四章：通道系统 -->
+        <section id="channels">
+            <h2><span class="emoji-icon">💬</span>通道系统 (Channels)</h2>
+
+            <p>通道系统让 nanobot 能同时连接多个聊天平台。每个平台只需要实现 <code>BaseChannel</code> 接口即可。</p>
+
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                      ChannelManager                         │
+│                  (统一管理所有通道)                          │
+└────────────────────┬──────────────────────────────────────┘
+                     │
+    ┌────────────────┼────────────────┬──────────────────┐
+    │                │                │                  │
+    ▼                ▼                ▼                  ▼
+┌────────┐    ┌──────────┐    ┌─────────┐    ┌───────────┐
+│Telegram│    │ Discord  │    │ Feishu  │    │   Slack   │
+│Adapter │    │ Adapter  │    │ Adapter │    │  Adapter  │
+└────────┘    └──────────┘    └─────────┘    └───────────┘
+     │              │              │               │
+     └──────────────┴──────────────┴───────────────┘
+                        │
+                        ▼
+                 ┌─────────────┐
+                 │ BaseChannel │
+                 │  (统一接口)  │
+                 └─────────────┘
+</code>
+            </div>
+
+            <h3>BaseChannel 接口</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/channels/base.py</span>
+<span class="keyword">class</span> <span class="class">BaseChannel</span>:
+    <span class="comment">"""所有通道的基类，定义统一接口"""</span>
+
+    <span class="keyword">async def</span> <span class="function">start</span>(self):
+        <span class="comment">"""启动通道，开始接收消息"""</span>
+        <span class="keyword">raise</span> NotImplementedError
+
+    <span class="keyword">async def</span> <span class="function">stop</span>(self):
+        <span class="comment">"""停止通道"""</span>
+        <span class="keyword">raise</span> NotImplementedError
+
+    <span class="keyword">async def</span> <span class="function">send</span>(self, content: str, chat_id: str, **kwargs):
+        <span class="comment">"""发送消息到指定聊天"""</span>
+        <span class="keyword">raise</span> NotImplementedError
+
+    <span class="keyword">async def</span> <span class="function">_handle_message</span>(self, msg):
+        <span class="comment">"""
+        处理收到的消息
+        将平台特定格式转换为 InboundMessage
+        """</span>
+        <span class="keyword">raise</span> NotImplementedError
+
+    <span class="keyword">def</span> <span class="function">is_running</span>(self) -> bool:
+        <span class="keyword">return</span> self._running
+</code>
+            </div>
+
+            <h3>ChannelManager 管理器</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/channels/manager.py</span>
+<span class="keyword">class</span> <span class="class">ChannelManager</span>:
+    <span class="comment">"""管理所有通道的生命周期和消息分发"""</span>
+
+    <span class="keyword">async def</span> <span class="function">start_all</span>(self):
+        <span class="comment">"""启动所有已配置的通道"""</span>
+        <span class="keyword">for</span> name, channel <span class="keyword">in</span> self._channels.items():
+            <span class="keyword">await</span> self._start_channel(name)
+
+    <span class="keyword">async def</span> <span class="function">_dispatch_outbound</span>(self, msg: OutboundMessage):
+        <span class="comment">"""分发出站消息到对应通道"""</span>
+        channel = self.get_channel(msg.channel)
+        <span class="keyword">if</span> channel:
+            <span class="keyword">await</span> channel.send(msg.content, msg.chat_id, **msg.metadata)
+
+    <span class="keyword">def</span> <span class="function">enabled_channels</span>(self) -> list[str]:
+        <span class="comment">"""返回已启用的通道列表"""</span>
+        <span class="keyword">return</span> [name <span class="keyword">for</span> name, ch <span class="keyword">in</span> self._channels.items() <span class="keyword">if</span> ch.is_enabled()]
+</code>
+            </div>
+
+            <h3>支持的通道列表</h3>
+            <table>
+                <tr><th>通道</th><th>文件</th><th>说明</th></tr>
+                <tr><td>Telegram</td><td>telegram.py</td><td>最完善，支持媒体、回复、streaming</td></tr>
+                <tr><td>Discord</td><td>discord.py</td><td>支持 slash commands、线程</td></tr>
+                <tr><td>Feishu</td><td>feishu.py</td><td>支持卡片消息、多媒体</td></tr>
+                <tr><td>Slack</td><td>slack.py</td><td>支持 thread、文件上传</td></tr>
+                <tr><td>DingTalk</td><td>dingtalk.py</td><td>企业钉钉集成</td></tr>
+                <tr><td>WhatsApp</td><td>whatsapp.py</td><td>通过 bridge 连接</td></tr>
+                <tr><td>QQ</td><td>qq.py</td><td>群聊支持</td></tr>
+                <tr><td>Email</td><td>email.py</td><td>SMTP 收发</td></tr>
+                <tr><td>Matrix</td><td>matrix.py</td><td>去中心化聊天协议</td></tr>
+                <tr><td>MoChat</td><td>mochat.py</td><td>MoChat 企业解决方案</td></tr>
+            </table>
+        </section>
+
+        <!-- 第五章：Provider 系统 -->
+        <section id="providers">
+            <h2><span class="emoji-icon">🧠</span>Provider 系统 (LLM)</h2>
+
+            <p>Provider 系统让 nanobot 能支持多种 LLM 提供商（OpenAI、Anthropic、Azure 等），通过统一接口调用不同的 AI 模型。</p>
+
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                     LLMProvider (基类)                       │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │ chat(messages, tools, model) -> LLMResponse        │  │
+│  │ get_default_model() -> str                          │  │
+│  └─────────────────────────────────────────────────────┘  │
+└────────────────┬──────────────────────────────────────────┘
+                 │
+    ┌────────────┼────────────┬────────────┬───────────────┐
+    │            │            │            │               │
+    ▼            ▼            ▼            ▼               ▼
+┌────────┐ ┌───────────┐ ┌─────────┐ ┌──────────┐ ┌───────────┐
+│ OpenAI │ │ Anthropic │ │  Azure  │ │ VolcEngine│ │  Ollama   │
+│Provider│ │ Provider  │ │ Provider│ │ Provider  │ │ Provider  │
+└────────┘ └───────────┘ └─────────┘ └──────────┘ └───────────┘
+</code>
+            </div>
+
+            <h3>LLMProvider 基类</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/providers/base.py</span>
+<span class="keyword">class</span> <span class="class">LLMProvider</span>:
+    <span class="comment">"""所有 LLM 提供商的基类"""</span>
+
+    <span class="keyword">async def</span> <span class="function">chat</span>(self, messages, tools=None, model=None, **kwargs):
+        <span class="comment">"""
+        发送聊天请求到 LLM
+        :param messages: 消息列表 [{role: str, content: str}, ...]
+        :param tools: 工具定义列表
+        :param model: 模型名称（可选）
+        :return: LLMResponse
+        """</span>
+        <span class="keyword">raise</span> NotImplementedError
+
+    <span class="keyword">async def</span> <span class="function">chat_with_retry</span>(self, messages, tools=None, model=None, max_retries=3):
+        <span class="comment">"""
+        带重试的聊天请求
+        自动处理临时性错误（限流、服务器错误等）
+        """</span>
+        <span class="keyword">for</span> attempt <span class="keyword">in</span> range(max_retries):
+            <span class="keyword">try</span>:
+                response = <span class="keyword">await</span> self.chat(messages, tools, model, **kwargs)
+                <span class="keyword">return</span> response
+            <span class="keyword">except</span> self._is_transient_error(e):
+                <span class="keyword">if</span> attempt < max_retries - <span class="number">1</span>:
+                    <span class="keyword">await</span> asyncio.sleep(<span class="number">2</span> ** attempt)  <span class="comment"># 指数退避</span>
+        <span class="keyword">raise</span>
+
+    <span class="keyword">def</span> <span class="function">get_default_model</span>(self) -> str:
+        <span class="keyword">return</span> <span class="string">"gpt-4o"</span>
+</code>
+            </div>
+
+            <h3>Provider 注册机制</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/providers/registry.py</span>
+<span class="keyword">class</span> <span class="class">ProviderRegistry</span>:
+    <span class="comment">"""LLM 提供商注册表"""</span>
+
+    _providers: dict[str, type[LLMProvider]] = {}
+
+    <span class="comment"># 注册新提供商（装饰器或显式调用）</span>
+    <span class="annotation">@classmethod</span>
+    <span class="keyword">def</span> <span class="function">register</span>(cls, name: str, provider_class: type[LLMProvider]):
+        cls._providers[name] = provider_class
+
+    <span class="comment"># 创建提供商实例</span>
+    <span class="annotation">@classmethod</span>
+    <span class="keyword">def</span> <span class="function">create</span>(cls, name: str, **config) -> LLMProvider:
+        <span class="keyword">return</span> cls._providers[name](**config)
+</code>
+            </div>
+
+            <h3>支持的 Providers</h3>
+            <div class="component-grid">
+                <div class="component-card">
+                    <h4>OpenAI / OpenRouter</h4>
+                    <p>使用 OpenAI API 格式，支持 GPT-4、Claude 等模型</p>
+                </div>
+                <div class="component-card">
+                    <h4>Anthropic</h4>
+                    <p>原生支持 Claude 模型，支持 Thinking 和工具调用</p>
+                </div>
+                <div class="component-card">
+                    <h4>Azure OpenAI</h4>
+                    <p>企业级 Azure 部署，支持微软认证</p>
+                </div>
+                <div class="component-card">
+                    <h4>LiteLLM</h4>
+                    <p>统一接口访问 100+ LLM，支持本地模型</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第六章：工具系统 -->
+        <section id="tools">
+            <h2><span class="emoji-icon">🔧</span>工具系统 (Tools)</h2>
+
+            <p>工具系统是 Agent 的"四肢"——让 AI 能够执行代码、读写文件、搜索网络等操作。每个工具都是一个独立的 Python 类。</p>
+
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                     ToolRegistry                            │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │ register(name, tool_instance)                      │  │
+│  │ execute(name, arguments) -> str                    │  │
+│  │ get_definitions() -> list[dict]                    │  │
+│  └─────────────────────────────────────────────────────┘  │
+└────────────────────┬──────────────────────────────────────┘
+                     │
+    ┌────────────────┼────────────────┬──────────────────┐
+    │                │                │                  │
+    ▼                ▼                ▼                  ▼
+┌────────┐    ┌──────────┐    ┌─────────┐    ┌───────────┐
+│Filesys │    │  Shell   │    │   Web   │    │   Cron    │
+│  Tool  │    │   Tool   │    │  Tool   │    │   Tool    │
+└────────┘    └──────────┘    └─────────┘    └───────────┘
+     │              │              │               │
+     ▼              ▼              ▼               ▼
+  read/write    execute      search          schedule
+   files        commands     web info       cron jobs
+</code>
+            </div>
+
+            <h3>工具基类</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/tools/base.py</span>
+<span class="keyword">class</span> <span class="class">BaseTool</span>:
+    <span class="comment">"""所有工具的基类"""</span>
+
+    name: str          <span class="comment"># 工具名称（用于注册）</span>
+    description: str    <span class="comment"># 工具描述（告诉 AI 何时使用）</span>
+    parameters: dict    <span class="comment"># 参数 schema（JSON Schema）</span>
+
+    <span class="keyword">async def</span> <span class="function">execute</span>(self, **kwargs) -> dict:
+        <span class="comment">"""
+        执行工具的核心方法
+        :param kwargs: 工具参数（来自 LLM 的工具调用）
+        :return: 执行结果（会被发送回 LLM）
+        """</span>
+        <span class="keyword">raise</span> NotImplementedError
+
+    <span class="keyword">def</span> <span class="function">get_definition</span>(self) -> dict:
+        <span class="comment">"""
+        返回工具定义，用于告诉 LLM 工具的用法
+        """</span>
+        <span class="keyword">return</span> {
+            <span class="string">"type"</span>: <span class="string">"function"</span>,
+            <span class="string">"function"</span>: {
+                <span class="string">"name"</span>: self.name,
+                <span class="string">"description"</span>: self.description,
+                <span class="string">"parameters"</span>: self.parameters,
+            }
+        }
+</code>
+            </div>
+
+            <h3>内置工具</h3>
+
+            <h4>1. FileSystemTool - 文件操作</h4>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/tools/filesystem.py</span>
+<span class="keyword">class</span> <span class="class">FileSystemTool</span>(BaseTool):
+    name = <span class="string">"filesystem"</span>
+    description = <span class="string">"Read from or write to files. Use for code files, docs, etc."</span>
+
+    <span class="comment"># 支持的操作：read, write, edit, list, mkdir, rm</span>
+
+    <span class="keyword">async def</span> <span class="function">execute</span>(self, action, path, content=None, **kwargs):
+        <span class="keyword">if</span> action == <span class="string">"read"</span>:
+            <span class="keyword">return</span> {<span class="string">"content"</span>: Path(path).read_text()}
+        <span class="keyword">elif</span> action == <span class="string">"write"</span>:
+            Path(path).write_text(content or <span class="string">""</span>)
+            <span class="keyword">return</span> {<span class="string">"success"</span>: True, <span class="string">"path"</span>: path}
+</code>
+            </div>
+
+            <h4>2. ShellTool - 命令执行</h4>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/tools/shell.py</span>
+<span class="keyword">class</span> <span class="class">ShellTool</span>(BaseTool):
+    name = <span class="string">"shell"</span>
+    description = <span class="string">"Execute shell commands and return output"</span>
+
+    <span class="keyword">async def</span> <span class="function">execute</span>(self, command, timeout=<span class="number">30</span>, **kwargs):
+        proc = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        <span class="keyword">return</span> {
+            <span class="string">"stdout"</span>: stdout.decode(),
+            <span class="string">"stderr"</span>: stderr.decode(),
+            <span class="string">"returncode"</span>: proc.returncode,
+        }
+</code>
+            </div>
+
+            <h4>3. WebTool - 网络搜索</h4>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/tools/web.py</span>
+<span class="keyword">class</span> <span class="class">WebTool</span>(BaseTool):
+    name = <span class="string">"web"</span>
+    description = <span class="string">"Search the web for current information"</span>
+
+    <span class="keyword">async def</span> <span class="function">execute</span>(self, query, num_results=<span class="number">5</span>, **kwargs):
+        <span class="comment"># 使用配置的搜索 API（Tavily、Serper 等）</span>
+        results = await self.search_api.search(query, num_results)
+        <span class="keyword">return</span> {
+            <span class="string">"results"</span>: results,
+            <span class="string">"query"</span>: query,
+        }
+</code>
+            </div>
+
+            <h3>工具注册流程</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/loop.py:115-133</span>
+<span class="comment"># AgentLoop 初始化时注册默认工具</span>
+<span class="keyword">def</span> <span class="function">_register_default_tools</span>(self):
+    <span class="comment"># 注册内置工具</span>
+    self.tools.register(<span class="string">"filesystem"</span>, FileSystemTool(self.workspace, self.restrict_to_workspace))
+    self.tools.register(<span class="string">"shell"</span>, ShellTool(exec_config=self.exec_config))
+    self.tools.register(<span class="string">"web"</span>, WebTool(web_search_config=self.web_search_config, proxy=self.web_proxy))
+    self.tools.register(<span class="string">"spawn"</span>, SpawnTool(bus=self.bus, provider=self.provider))
+    self.tools.register(<span class="string">"message"</span>, MessageTool())
+
+    <span class="comment"># 从 skills/ 目录加载技能工具</span>
+    skills_loader = SkillsLoader(self.workspace)
+    <span class="keyword">for</span> skill <span class="keyword">in</span> skills_loader.list_skills():
+        tool = skill.load_as_tool()
+        self.tools.register(skill.name, tool)
+</code>
+            </div>
+
+            <div class="callout">
+                <strong>💡 工具调用流程：</strong>
+                <ol style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li>AgentLoop 调用 LLM，传递工具定义</li>
+                    <li>LLM 判断需要调用工具，返回 tool_calls</li>
+                    <li>AgentLoop 执行工具，收集结果</li>
+                    <li>将结果发回 LLM 继续推理</li>
+                    <li>重复直到获得最终回复</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- 第七章：记忆系统 -->
+        <section id="memory">
+            <h2><span class="emoji-icon">🧠</span>记忆系统 (Memory)</h2>
+
+            <p>记忆系统让 Agent 能够"记住"之前的对话内容。它包含两个主要组件：<code>MemoryStore</code>（存储）和 <code>MemoryConsolidator</code>（整合）。</p>
+
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                     记忆系统架构                             │
+└─────────────────────────────────────────────────────────────┘
+
+   用户消息
+      │
+      ▼
+┌───────────────────┐      ┌────────────────────────────┐
+│   Session         │      │  MemoryConsolidator        │
+│   (短期记忆)       │      │  (记忆整合器)               │
+│                   │      │                            │
+│ messages: [       │      │  • 检测上下文长度            │
+│   {role, content} │─────▶│  • 压缩历史消息              │
+│   {role, content} │      │  • 保存到长期记忆            │
+│ ]                 │      │  • 清理冗余信息             │
+└───────────────────┘      └────────────────────────────┘
+                                   │
+                                   ▼
+                          ┌────────────────────────────┐
+                          │  MemoryStore               │
+                          │  (长期记忆)                 │
+                          │                            │
+                          │  • long_term/              │
+                          │  • 语义压缩                 │
+                          │  • 关键信息提取             │
+                          └────────────────────────────┘
+</code>
+            </div>
+
+            <h3>MemoryStore</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/memory.py</span>
+<span class="keyword">class</span> <span class="class">MemoryStore</span>:
+    <span class="comment">"""长期记忆存储和管理"""</span>
+
+    <span class="keyword">async def</span> <span class="function">write_long_term</span>(self, session_key: str, content: str):
+        <span class="comment">"""写入长期记忆（归档）"""</span>
+        path = self.long_term_dir / <span class="string">f"{session_key}.json"</span>
+        <span class="keyword">await</span> self._write_json(path, {<span class="string">"content"</span>: content, <span class="string">"timestamp"</span>: time.time()})
+
+    <span class="keyword">async def</span> <span class="function">read_long_term</span>(self, session_key: str) -> str | None:
+        <span class="comment">"""读取长期记忆"""</span>
+        path = self.long_term_dir / <span class="string">f"{session_key}.json"</span>
+        <span class="keyword">if</span> path.exists():
+            data = <span class="keyword">await</span> self._read_json(path)
+            <span class="keyword">return</span> data.get(<span class="string">"content"</span>)
+
+    <span class="keyword">async def</span> <span class="function">consolidate</span>(self, messages: list[dict]) -> str:
+        <span class="comment">"""
+        将消息列表压缩为摘要
+        使用 LLM 进行语义压缩
+        """</span>
+        prompt = <span class="string">f"Compress the following conversation into a summary:\n{messages}"</span>
+        response = <span class="keyword">await</span> self.provider.chat([{<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: prompt}])
+        <span class="keyword">return</span> response.content
+</code>
+            </div>
+
+            <h3>MemoryConsolidator</h3>
+            <div class="code-block">
+                <code><span class="comment"># nanobot/agent/memory.py</span>
+<span class="keyword">class</span> <span class="class">MemoryConsolidator</span>:
+    <span class="comment">"""
+    记忆整合器 - 检测上下文溢出并进行压缩
+    基于 token 数量而非消息数量
+    """</span>
+
+    <span class="keyword">async def</span> <span class="function">maybe_consolidate_by_tokens</span>(self, session):
+        <span class="comment">"""
+        检查是否需要整合
+        当 token 数量超过 context_window_tokens * 0.75 时触发
+        """</span>
+        estimated = self.estimate_session_prompt_tokens(session)
+        <span class="keyword">if</span> estimated > self.context_window_tokens * <span class="number">0.75</span>:
+            <span class="keyword">await</span> self._consolidate_session(session)
+
+    <span class="keyword">def</span> <span class="function">estimate_session_prompt_tokens</span>(self, session) -> int:
+        <span class="comment">"""估算会话的 token 数量（使用估算公式）"""</span>
+        <span class="comment"># 简单估算：每 4 个字符 ≈ 1 token</span>
+        total_chars = sum(len(m.get(<span class="string">"content"</span>, <span class="string">""</span>)) <span class="keyword">for</span> m <span class="keyword">in</span> session.messages)
+        <span class="keyword">return</span> total_chars // <span class="number">4</span>
+</code>
+            </div>
+
+            <div class="callout">
+                <strong>💡 为什么需要记忆整合？</strong>
+                <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li>LLM 有上下文窗口限制（通常 128K tokens）</li>
+                    <li>长期对话会超出限制，导致性能下降</li>
+                    <li>通过压缩历史，保持关键信息同时减少 token 消耗</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 第八章：会话管理 -->
+        <section id="session">
+            <h2><span class="emoji-icon">💾</span>会话管理 (Session)</h2>
+
+            <p>Session 系统管理每个用户对话的上下文状态。每个会话都有独立的 ID 和历史消息。</p>
+
+            <div class="code-block">
+                <code><span class="comment"># nanobot/session/manager.py</span>
+<span class="keyword">class</span> <span class="class">Session</span>:
+    <span class="comment">"""单个会话的数据结构"""</span>
+
+    key: str              <span class="comment"># 会话标识 (channel:chat_id)</span>
+    messages: list[dict]  <span class="comment"># 消息历史</span>
+    last_consolidated: int  <span class="comment"># 最后整合的位置</span>
+
+    <span class="keyword">def</span> <span class="function">add_message</span>(self, role: str, content: str):
+        <span class="comment">"""添加消息到历史"""</span>
+        self.messages.append({<span class="string">"role"</span>: role, <span class="string">"content"</span>: content})
+
+    <span class="keyword">def</span> <span class="function">get_history</span>(self, max_messages: int = <span class="number">0</span>) -> list[dict]:
+        <span class="comment">"""
+        获取历史消息
+        :param max_messages: 0 = 所有消息, N = 最近 N 条
+        """</span>
+        <span class="keyword">if</span> max_messages == <span class="number">0</span>:
+            <span class="keyword">return</span> self.messages[self.last_consolidated:]
+        <span class="keyword">return</span> self.messages[-max_messages:]
+
+    <span class="keyword">def</span> <span class="function">clear</span>(self):
+        <span class="comment">"""清空消息但保留会话 ID"""</span>
+        self.messages = []
+
+<span class="keyword">class</span> <span class="class">SessionManager</span>:
+    <span class="comment">"""会话管理器 - 负责会话的创建、保存、加载"""</span>
+
+    <span class="keyword">def</span> <span class="function">get_or_create</span>(self, key: str) -> Session:
+        <span class="comment">"""获取或创建会话"""</span>
+        <span class="keyword">if</span> key <span class="keyword">in</span> self._cache:
+            <span class="keyword">return</span> self._cache[key]
+        <span class="keyword">return</span> self._load(key) <span class="keyword">or</span> Session(key=key)
+
+    <span class="keyword">def</span> <span class="function">save</span>(self, session: Session):
+        <span class="comment">"""保存会话到磁盘"""</span>
+        path = self._get_session_path(session.key)
+        <span class="keyword">await</span> self._write_json(path, {
+            <span class="string">"key"</span>: session.key,
+            <span class="string">"messages"</span>: session.messages,
+            <span class="string">"last_consolidated"</span>: session.last_consolidated,
+        })
+</code>
+            </div>
+        </section>
+
+        <!-- 第九章：总结 -->
+        <section id="summary">
+            <h2><span class="emoji-icon">🎯</span>总结与学习路径</h2>
+
+            <h3>核心架构总结</h3>
+            <div class="architecture-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                    nanobot 工作流程                         │
+└─────────────────────────────────────────────────────────────┘
+
+  1. [Channel] 接收用户消息 (Telegram/Discord/...)
+       │
+       ▼
+  2. [MessageBus] 发布消息事件
+       │
+       ▼
+  3. [AgentLoop] _process_message()
+       │
+       ├─▶ [SessionManager] 获取/创建会话
+       │
+       ├─▶ [MemoryConsolidator] 检查是否需要整合
+       │
+       ├─▶ [ContextBuilder] 构建 prompt
+       │
+       └─▶ [Provider] LLM 推理
+            │
+            ├─▶ 有工具调用 ──▶ [ToolRegistry] 执行工具
+            │                        │
+            │                        └────────────────────────┘
+            │                                    (循环)
+            │
+            └─▶ 无工具调用 ──▶ 返回结果
+                              │
+       ┌─────────────────────┘
+       │
+       ▼
+  4. [MessageBus] 发布回复
+       │
+       ▼
+  5. [Channel] 发送回复给用户
+
+┌─────────────────────────────────────────────────────────────┐
+│                    关键设计模式                             │
+├─────────────────────────────────────────────────────────────┤
+│  • 事件驱动: 通过 MessageBus 解耦组件                        │
+│  • 插件化: 通道和工具都是可插拔的                           │
+│  • 异步: 全部使用 AsyncIO 实现高并发                         │
+│  • 分层: AgentLoop → Tools → Providers → Channels           │
+└─────────────────────────────────────────────────────────────┘
+</code>
+            </div>
+
+            <h3>下一步学习建议</h3>
+            <div class="step-list">
+                <li><strong>阅读源码</strong> - 从 <code>nanobot/agent/loop.py</code> 的 AgentLoop 开始，理解核心循环</li>
+                <li><strong>实现自己的通道</strong> - 参考 <code>telegram.py</code> 实现一个新的消息通道</li>
+                <li><strong>添加新工具</strong> - 参考 <code>filesystem.py</code> 添加自定义工具</li>
+                <li><strong>实现 Provider</strong> - 参考 <code>openai.py</code> 添加新的 LLM 提供商</li>
+                <li><strong>创建技能</strong> - 在 <code>skills/</code> 目录创建可复用的技能</li>
+            </div>
+
+            <div class="callout">
+                <strong>🚀 实践项目建议：</strong>
+                尝试实现一个简化版的 AI Agent：
+                <ol style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li>实现 MessageBus（事件总线）</li>
+                    <li>实现 SessionManager（会话管理）</li>
+                    <li>实现 ContextBuilder（上下文构建）</li>
+                    <li>实现 AgentLoop（主循环 + 工具调用）</li>
+                    <li>实现一个简单的 Channel（接收和发送消息）</li>
+                </ol>
+            </div>
+
+            <h3>关键文件速查表</h3>
+            <table>
+                <tr><th>模块</th><th>文件</th><th>核心类/函数</th><th>职责</th></tr>
+                <tr><td>Agent</td><td>agent/loop.py</td><td>AgentLoop</td><td>核心循环、消息处理、工具调用</td></tr>
+                <tr><td>Context</td><td>agent/context.py</td><td>ContextBuilder</td><td>构建 LLM 消息格式</td></tr>
+                <tr><td>Memory</td><td>agent/memory.py</td><td>MemoryStore, MemoryConsolidator</td><td>长期记忆和压缩</td></tr>
+                <tr><td>Session</td><td>session/manager.py</td><td>Session, SessionManager</td><td>会话状态管理</td></tr>
+                <tr><td>Tools</td><td>agent/tools/registry.py</td><td>ToolRegistry</td><td>工具注册和执行</td></tr>
+                <tr><td>Channel</td><td>channels/manager.py</td><td>ChannelManager</td><td>通道生命周期管理</td></tr>
+                <tr><td>Provider</td><td>providers/base.py</td><td>LLMProvider</td><td>LLM 调用抽象</td></tr>
+                <tr><td>Bus</td><td>bus/events.py</td><td>MessageBus</td><td>事件发布订阅</td></tr>
+            </table>
+        </section>
+
+        <footer>
+            <p>🐈 nanobot 学习指南 | 基于源码 ~15,000 行 Python 实现</p>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+                <a href="https://github.com/HKUDS/nanobot" style="color: var(--primary);">GitHub</a> |
+                <a href="https://github.com/openclaw/openclaw" style="color: var(--primary);">OpenClaw</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const stepData = {
+            1: {
+                title: "Step 1: 接收消息",
+                content: `<strong style="color: var(--accent);">InboundMessage</strong> 进入系统
+
+<pre style="color: #a5f3fc; margin-top: 0.5rem;">
+# 消息结构
+{
+  "channel": "telegram",      // 来源通道
+  "chat_id": "123456",        // 聊天 ID
+  "sender_id": "user123",     // 发送者
+  "content": "帮我写一段代码", // 消息内容
+  "media": null               // 附件（可选）
+}
+</pre>
+
+<p style="margin-top: 0.5rem; color: var(--text-muted);">消息被封装为统一的 <code>InboundMessage</code> 格式，与具体平台无关</p>`,
+                progress: 20
+            },
+            2: {
+                title: "Step 2: 构建上下文",
+                content: `<strong style="color: var(--accent);">ContextBuilder</strong> 构建 LLM 消息
+
+<pre style="color: #a5f3fc; margin-top: 0.5rem;">
+# 消息列表格式
+[
+  {"role": "system", "content": "你是 nanobot..."},
+  {"role": "user", "content": "帮我写代码"},
+  {"role": "assistant", "content": "好的..."},
+  ...
+]
+</pre>
+
+<p style="margin-top: 0.5rem; color: var(--text-muted);">
+• 从 Session 加载历史消息<br>
+• 注入系统 Prompt<br>
+• 添加当前用户消息<br>
+• 注入工具定义
+</p>`,
+                progress: 40
+            },
+            3: {
+                title: "Step 3: LLM 推理",
+                content: `<strong style="color: var(--accent);">Provider.chat()</strong> 调用 LLM
+
+<pre style="color: #a5f3fc; margin-top: 0.5rem;">
+# LLM 请求
+{
+  "messages": [...],
+  "tools": [...],
+  "model": "gpt-4o"
+}
+
+# LLM 响应
+{
+  "content": "我来帮你...",
+  "tool_calls": [
+    {"name": "filesystem", "arguments": {"action": "read", "path": "..."}}
+  ]
+}
+</pre>
+
+<p style="margin-top: 0.5rem; color: var(--text-muted);">
+LLM 可能返回：<br>
+• <strong>最终回复</strong> → 完成<br>
+• <strong>工具调用</strong> → 进入下一步
+</p>`,
+                progress: 60
+            },
+            4: {
+                title: "Step 4: 工具执行",
+                content: `<strong style="color: var(--accent);">ToolRegistry.execute()</strong> 执行工具
+
+<pre style="color: #a5f3fc; margin-top: 0.5rem;">
+# 文件系统工具
+ToolCall(name="filesystem", args={action: "read", path: "/path/file.py"})
+
+Result: {"content": "file contents..."}
+
+# Shell 工具
+ToolCall(name="shell", args={command: "ls -la"})
+
+Result: {"stdout": "...", "stderr": "", "returncode": 0}
+</pre>
+
+<p style="margin-top: 0.5rem; color: var(--text-muted);">
+执行结果会被添加回消息历史，然后再次调用 LLM
+</p>`,
+                progress: 80
+            },
+            5: {
+                title: "Step 5: 返回结果",
+                content: `<strong style="color: var(--accent);">OutboundMessage</strong> 返回给用户
+
+<pre style="color: #a5f3fc; margin-top: 0.5rem;">
+# 回复消息
+{
+  "channel": "telegram",
+  "chat_id": "123456",
+  "content": "这是你的代码...",
+  "metadata": {}
+}
+</pre>
+
+<p style="margin-top: 0.5rem; color: var(--text-muted);">
+• 保存到 Session（更新历史）<br>
+• 发布到 MessageBus<br>
+• 通过 Channel 发送给用户<br>
+• 触发记忆整合检查
+</p>`,
+                progress: 100
+            }
+        };
+
+        let currentStep = 0;
+
+        function showStep(step) {
+            const data = stepData[step];
+            const display = document.getElementById('step-display');
+            const progress = document.getElementById('progress-fill');
+
+            display.innerHTML = `
+                <h4 style="color: var(--success); margin-bottom: 0.75rem;">${data.title}</h4>
+                ${data.content}
+            `;
+            progress.style.width = data.progress + '%';
+
+            // 更新按钮状态
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.style.opacity = i + 1 === step ? '1' : '0.5';
+            });
+        }
+
+        // 添加平滑滚动
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // 初始化
+        showStep(1);
+    </script>
+</body>
+</html>
